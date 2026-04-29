@@ -1,0 +1,73 @@
+.card {
+  cursor: pointer;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background-color: var(--white);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.imageContainer {
+  height: 240px;
+  overflow: hidden;
+  position: relative;
+}
+
+.categoryBadge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.content {
+  padding: 1.5rem;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.description {
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1rem;
+}
+
+.time {
+  display: flex;
+  gap: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.timeItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
