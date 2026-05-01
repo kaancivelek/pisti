@@ -6,8 +6,11 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Pişti | Minimalist Recipe Journal",
-  description: "A simple, minimalist place to store your favorite recipes.",
+  title: "Pişti | Minimalist Tarif Günlüğü",
+  description: "Favori tariflerinizi saklayabileceğiniz sade ve minimalist bir alan.",
+  icons: {
+    icon: "/pisti.svg",
+  },
 };
 
 export default function RootLayout({
