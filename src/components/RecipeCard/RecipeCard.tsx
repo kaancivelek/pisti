@@ -26,21 +26,22 @@ const RecipeCard = forwardRef<HTMLDivElement, RecipeCardProps>(({ recipe, onClic
       onMouseLeave={handleMouseLeave}
     >
       <div className={styles.imageContainer}>
-        <div className={styles.categoryBadge}>{recipe.category}</div>
+        <div className={styles.categoryBadge}>{recipe.categoryName || recipe.category}</div>
         <img 
-          src={recipe.imageUrl} 
+          src={recipe.imageUrl || "https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=2071&auto=format&fit=crop"} 
           alt={recipe.title} 
           className={styles.image}
+          referrerPolicy="no-referrer"
         />
       </div>
       <div className={styles.content}>
         <h3 className={styles.title}>{recipe.title}</h3>
-        <p className={styles.description}>{recipe.description}</p>
+        <p className={styles.description}>{recipe.description || recipe.shortTitle || ""}</p>
         
         <div className={styles.footer}>
           <div className={styles.time}>
             <span className={styles.timeItem}>
-              <Clock size={14} /> {recipe.prepTime + recipe.cookTime}m
+              <Clock size={14} /> {(recipe.prepTime || 0) + (recipe.cookTime || 0)} dk
             </span>
           </div>
           <ArrowRight size={18} color="var(--accent)" />

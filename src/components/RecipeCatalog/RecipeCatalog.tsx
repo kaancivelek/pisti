@@ -7,16 +7,50 @@ import RecipeCard from "../RecipeCard/RecipeCard";
 import RecipePanel from "../RecipePanel/RecipePanel";
 import styles from "./RecipeCatalog.module.css";
 
+import { getRecipes } from "@/app/actions";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInView } from "react-intersection-observer";
+
 interface RecipeCatalogProps {
-  recipes: any[];
+  initialRecipes: any[];
 }
 
-export default function RecipeCatalog({ recipes }: RecipeCatalogProps) {
+export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
   const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
   
   const headerRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  const { ref: loadMoreRef, inView } = useInView();
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['recipes'],
+    queryFn: async ({ pageParam = 1 }) => {
+      return await getRecipes(pageParam, 10);
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 10 ? allPages.length + 1 : undefined;
+    },
+    initialData: {
+      pages: [initialRecipes],
+      pageParams: [1]
+    }
+  });
+
+  const recipes = data?.pages.flatMap(page => page) || [];
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   useEffect(() => {
     const tl = gsap.timeline();
@@ -38,19 +72,35 @@ export default function RecipeCatalog({ recipes }: RecipeCatalogProps) {
       <Navbar ref={headerRef} />
 
       <header className={styles.header}>
-        <h1 className={styles.title}>The minimalist recipe journal.</h1>
-        <p>Curated, simple, and ad-free. Just the ingredients and the steps.</p>
+        <h1 className={styles.title}>Minimalist tarif günlüğü.</h1>
+        <p>Özenle seçilmiş, sade ve reklamsız. Sadece malzemeler ve adımlar.</p>
       </header>
 
       <div className={styles.grid}>
         {recipes.map((recipe, index) => (
           <RecipeCard 
-            key={recipe._id} 
+            key={`${recipe._id}-${index}`} 
             recipe={recipe} 
             ref={el => { cardsRef.current[index] = el; }}
             onClick={() => setSelectedRecipe(recipe)} 
           />
         ))}
+      </div>
+
+      <div 
+        ref={loadMoreRef} 
+        style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem', paddingBottom: '3rem', minHeight: '50px' }}
+      >
+        {isFetchingNextPage && (
+          <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>
+            Daha fazla yükleniyor...
+          </span>
+        )}
+        {!hasNextPage && recipes.length > 0 && (
+          <span style={{ color: 'var(--foreground)', opacity: 0.7 }}>
+            Tüm tarifleri gördünüz.
+          </span>
+        )}
       </div>
 
       <RecipePanel 

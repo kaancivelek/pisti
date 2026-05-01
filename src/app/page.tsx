@@ -1,18 +1,13 @@
 import RecipeCatalog from "@/components/RecipeCatalog/RecipeCatalog";
-import { mockRecipes } from "@/lib/data/mockRecipes";
+import { getRecipes } from "./actions";
 
-// This is a Server Component. Later, we will fetch data from MongoDB here.
+// This is a Server Component.
 export default async function Home() {
-  
-  // Example of future data fetching:
-  // await dbConnect();
-  // const recipes = await Recipe.find({}).lean();
-  
-  const recipes = mockRecipes;
+  const initialRecipes = await getRecipes(1, 10);
 
   return (
     <main className="container">
-      <RecipeCatalog recipes={recipes} />
+      <RecipeCatalog initialRecipes={initialRecipes} />
     </main>
   );
 }
