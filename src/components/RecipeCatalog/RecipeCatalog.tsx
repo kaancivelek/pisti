@@ -7,12 +7,24 @@ import RecipeCard from "../RecipeCard/RecipeCard";
 import RecipePanel from "../RecipePanel/RecipePanel";
 import styles from "./RecipeCatalog.module.css";
 
-import { getRecipes } from "@/app/actions";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { getRecipeById, getRecipes } from "@/app/actions";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 
+interface RecipeSummary {
+  _id?: string;
+  title?: string;
+  description?: string;
+  shortTitle?: string;
+  categoryName?: string;
+  category?: string;
+  imageUrl?: string;
+  prepTime?: number;
+  cookTime?: number;
+}
+
 interface RecipeCatalogProps {
-  initialRecipes: any[];
+  readonly initialRecipes: RecipeSummary[];
 }
 
 export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
@@ -44,7 +56,33 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
     }
   });
 
-  const recipes = data?.pages.flatMap(page => page) || [];
+  const recipes = data?.pages.flat() || [];
+
+  const selectedId = selectedRecipe?._id as string | undefined;
+  const needsDetail = Boolean(
+    !selectedRecipe?.ingredientGroups?.length &&
+    !selectedRecipe?.instructionGroups?.length
+  );
+
+  const { data: recipeDetail, isFetching: isFetchingDetail } = useQuery({
+    queryKey: ["recipe-detail", selectedId],
+    queryFn: () => getRecipeById(selectedId as string),
+    enabled: Boolean(selectedId && needsDetail),
+  });
+
+  useEffect(() => {
+    if (!recipeDetail || !selectedId) {
+      return;
+    }
+
+    setSelectedRecipe((prev: any) => {
+      if (prev?._id !== selectedId) {
+        return prev;
+      }
+
+      return { ...prev, ...recipeDetail };
+    });
+  }, [recipeDetail, selectedId]);
 
   useEffect(() => {
     if (inView && hasNextPage && !isFetchingNextPage) {
@@ -105,6 +143,7 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
 
       <RecipePanel 
         recipe={selectedRecipe} 
+        isLoading={Boolean(selectedRecipe && needsDetail && isFetchingDetail)}
         onClose={() => setSelectedRecipe(null)} 
         ref={panelRef} 
       />

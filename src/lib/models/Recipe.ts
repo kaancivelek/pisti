@@ -99,6 +99,7 @@ const RecipeSchema: Schema = new Schema(
     shortTitle: { type: String },
     slug: { type: String, required: true, unique: true, index: true },
     permalink: { type: String },
+    createdAt: { type: Date, index: true },
     contentDate: { type: Date },
     publishDate: { type: Date },
     contentText: { type: String, required: true },
