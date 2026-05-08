@@ -29,7 +29,8 @@ interface RecipeCatalogProps {
 
 export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
   const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
-  
+  const [detailRequestedId, setDetailRequestedId] = useState<string | null>(null);
+
   const headerRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -59,16 +60,19 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
   const recipes = data?.pages.flat() || [];
 
   const selectedId = selectedRecipe?._id as string | undefined;
-  const needsDetail = Boolean(
-    !selectedRecipe?.ingredientGroups?.length &&
-    !selectedRecipe?.instructionGroups?.length
-  );
+ const needsDetail = selectedId === detailRequestedId && !selectedRecipe?.ingredientGroups?.length;
 
-  const { data: recipeDetail, isFetching: isFetchingDetail } = useQuery({
-    queryKey: ["recipe-detail", selectedId],
-    queryFn: () => getRecipeById(selectedId as string),
-    enabled: Boolean(selectedId && needsDetail),
-  });
+const handleSelectRecipe = (recipe: any) => {
+  setSelectedRecipe(recipe);
+  setDetailRequestedId(recipe._id);  // ← Bu recipe'nin detayını çek
+};
+
+ const { data: recipeDetail, isFetching: isFetchingDetail } = useQuery({
+  queryKey: ["recipe-detail", selectedId],
+  queryFn: () => getRecipeById(selectedId as string),
+  enabled: Boolean(needsDetail),
+  staleTime: 5 * 60 * 1000, // Redis TTL (300s) ile eşleştir
+});
 
   useEffect(() => {
     if (!recipeDetail || !selectedId) {
@@ -120,10 +124,11 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
             key={`${recipe._id}-${index}`} 
             recipe={recipe} 
             ref={el => { cardsRef.current[index] = el; }}
-            onClick={() => setSelectedRecipe(recipe)} 
+            onClick={() => handleSelectRecipe(recipe)}
+
           />
         ))}
-      </div>
+      </div>  
 
       <div 
         ref={loadMoreRef} 
@@ -144,7 +149,10 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
       <RecipePanel 
         recipe={selectedRecipe} 
         isLoading={Boolean(selectedRecipe && needsDetail && isFetchingDetail)}
-        onClose={() => setSelectedRecipe(null)} 
+        onClose={() => {
+  setSelectedRecipe(null);
+  setDetailRequestedId(null);  // ← Flag de sıfırla
+}}
         ref={panelRef} 
       />
     </>

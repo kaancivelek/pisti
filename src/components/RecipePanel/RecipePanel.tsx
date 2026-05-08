@@ -1,6 +1,6 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import gsap from "gsap";
-import { X, Utensils } from "lucide-react";
+import { X, Utensils, FileDown } from "lucide-react";
 import styles from "./RecipePanel.module.css";
 
 interface RecipePanelProps {
@@ -51,8 +51,38 @@ interface RecipeDetail {
 const RecipePanel = forwardRef<HTMLDivElement, RecipePanelProps>(({ recipe, isLoading, onClose }, ref) => {
   const overlayRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   useImperativeHandle(ref, () => panelRef.current as HTMLDivElement, []);
+
+
+  
+  const handleDownloadPdf = async () => {
+    if (!recipe?._id || pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      const res = await fetch(`/api/recipes/${recipe._id}/pdf`);
+      if (!res.ok) throw new Error('PDF oluşturulamadı.');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const safeName = (recipe.title ?? 'tarif')
+        .toLowerCase()
+        .replace(/[ğ]/g, 'g').replace(/[ü]/g, 'u').replace(/[ş]/g, 's')
+        .replace(/[ı]/g, 'i').replace(/[ö]/g, 'o').replace(/[ç]/g, 'c')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      a.href = url;
+      a.download = `${safeName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[PDF] download error:', err);
+    } finally {
+      setPdfLoading(false); 
+    }
+  };
 
   useEffect(() => {
     if (recipe) {
@@ -112,8 +142,25 @@ const RecipePanel = forwardRef<HTMLDivElement, RecipePanelProps>(({ recipe, isLo
             </div>
             
             <div className={styles.content}>
-              <div className={styles.category}>{recipe.categoryName || recipe.category}</div>
-              <h2 className={styles.title}>{recipe.title}</h2>
+              <div className={styles.contentHeader}>
+                <div>
+                  <div className={styles.category}>{recipe.categoryName || recipe.category}</div>
+                  <h2 className={styles.title}>{recipe.title}</h2>
+                </div>
+                <button
+                  className={`${styles.pdfBtn} ${pdfLoading ? styles.pdfBtnLoading : ''}`}
+                  onClick={handleDownloadPdf}
+                  disabled={pdfLoading}
+                  title="PDF olarak indir"
+                >
+                  {pdfLoading ? (
+                    <span className={styles.pdfSpinner} />
+                  ) : (
+                    <FileDown size={16} />
+                  )}
+                  {pdfLoading ? 'Hazırlanıyor...' : 'PDF Kaydet'}
+                </button>
+              </div>
               <p className={styles.description}>{recipe.description || recipe.shortTitle || ""}</p>
               
               <div className={styles.metaGrid}>

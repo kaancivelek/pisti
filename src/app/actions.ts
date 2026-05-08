@@ -31,10 +31,12 @@ export async function getRecipes(page: number, limit: number = 10) {
     .limit(limit)
     .lean();
 
+  const serialized = recipes.map(r => ({ ...r, _id: r._id.toString() }));
+
   try {
     const redis = await getRedisClient();
     if (redis) {
-      await redis.set(cacheKey, JSON.stringify(recipes), {
+      await redis.set(cacheKey, JSON.stringify(serialized), {
         EX: cacheTtlSeconds,
       });
       console.info("[REDIS] cache set", cacheKey, "ttl", cacheTtlSeconds);
@@ -43,7 +45,7 @@ export async function getRecipes(page: number, limit: number = 10) {
     console.warn("[REDIS] cache write failed", error);
   }
 
-  return structuredClone(recipes);
+  return structuredClone(serialized);
 }
 
 export async function getRecipeById(id: string) {
@@ -71,10 +73,12 @@ export async function getRecipeById(id: string) {
     return null;
   }
 
+  const serialized = { ...recipe, _id: recipe._id.toString() };
+
   try {
     const redis = await getRedisClient();
     if (redis) {
-      await redis.set(cacheKey, JSON.stringify(recipe), {
+      await redis.set(cacheKey, JSON.stringify(serialized), {
         EX: cacheTtlSeconds,
       });
       console.info("[REDIS] cache set", cacheKey, "ttl", cacheTtlSeconds);
@@ -83,5 +87,5 @@ export async function getRecipeById(id: string) {
     console.warn("[REDIS] cache write failed", error);
   }
 
-  return structuredClone(recipe);
+  return structuredClone(serialized);
 }

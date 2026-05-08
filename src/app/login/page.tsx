@@ -47,7 +47,7 @@ function LoginForm() {
 
         <div className={styles.header}>
           <h1 className={styles.title}>Hoş geldin</h1>
-          <p className={styles.subtitle}>Admin paneline giriş yap</p>
+          <p className={styles.subtitle}>Yemek tariflerini keşfet</p>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>

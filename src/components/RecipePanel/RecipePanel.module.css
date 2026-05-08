@@ -148,3 +148,64 @@
 .stepText {
   padding-top: 4px;
 }
+
+/* ── PDF Button ──────────────────────────────────────────── */
+.contentHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.contentHeader h2 {
+  margin-bottom: 0;
+}
+
+.pdfBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--white);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 0.5rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.pdfBtn:hover:not(:disabled) {
+  background: var(--text-primary);
+  color: var(--white);
+  border-color: var(--text-primary);
+}
+
+.pdfBtnLoading {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.pdfSpinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: var(--text-primary);
+  border-radius: 50%;
+  animation: pdfSpin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+
+.pdfBtnLoading .pdfSpinner {
+  border-top-color: currentColor;
+}
+
+@keyframes pdfSpin {
+  to { transform: rotate(360deg); }
+}

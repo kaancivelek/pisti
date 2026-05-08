@@ -37,7 +37,7 @@
 
 - **Frontend:** React (Next.js önerilir)
 - **Backend:** Node.js (Express veya Next API Routes)
-- **Database:** PostgreSQL
+- **Database:** MongoDB
 - **Storage:** Local file system veya cloud (image URL destekli)
 
 ## 4.2 Alternatif (Daha düşük maliyetli)
