@@ -3,17 +3,22 @@ import dbConnect from '@/lib/mongodb';
 import Recipe from '@/lib/models/Recipe';
 import { generateRecipePdf } from '@/lib/pdf/generateRecipePdf';
 export const runtime = 'nodejs';
+
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
 
     const { id } = await params;
+
     const recipe = await Recipe.findById(id).lean();
     if (!recipe) {
-      return NextResponse.json({ error: 'Tarif bulunamadı.' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Tarif bulunamadı.' },
+        { status: 404 }
+      );
     }
 
     const r = recipe as any;
@@ -48,11 +53,16 @@ export async function GET(
         'Content-Length': String(pdfBuffer.length),
       },
     });
+
   } catch (error: any) {
     console.error('[PDF] generation error:', error);
-    return NextResponse.json({
-      error: 'PDF oluşturulamadı.',
-      details: error.message
-    }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        error: 'PDF oluşturulamadı.',
+        details: error.message,
+      },
+      { status: 500 }
+    );
   }
 }
