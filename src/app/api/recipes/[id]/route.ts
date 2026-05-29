@@ -18,7 +18,10 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     const { id } = await params;
     await dbConnect();
 
-    const recipe = await Recipe.findOne({ _id: id, authorId: session.user.id }).lean();
+    const isAdmin = (session.user as any).role === 'admin';
+    const query = isAdmin ? { _id: id } : { _id: id, authorId: session.user.id };
+
+    const recipe = await Recipe.findOne(query).lean();
     if (!recipe) {
       return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
     }
@@ -42,8 +45,11 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     const body = await req.json();
     await dbConnect();
 
+    const isAdmin = (session.user as any).role === 'admin';
+    const query = isAdmin ? { _id: id } : { _id: id, authorId: session.user.id };
+
     const recipe = await Recipe.findOneAndUpdate(
-      { _id: id, authorId: session.user.id },
+      query,
       { $set: body },
       { new: true }
     ).lean();
@@ -71,7 +77,10 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     const { id } = await params;
     await dbConnect();
 
-    const recipe = await Recipe.findOneAndDelete({ _id: id, authorId: session.user.id });
+    const isAdmin = (session.user as any).role === 'admin';
+    const query = isAdmin ? { _id: id } : { _id: id, authorId: session.user.id };
+
+    const recipe = await Recipe.findOneAndDelete(query);
     if (!recipe) {
       return NextResponse.json({ error: 'Recipe not found or unauthorized' }, { status: 404 });
     }
