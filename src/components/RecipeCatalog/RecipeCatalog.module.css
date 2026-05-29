@@ -1,15 +1,233 @@
 .header {
-  padding: 4rem 0 3rem 0;
+  padding: 3rem 0 2rem 0;
   max-width: 600px;
 }
 
 .title {
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.layoutContainer {
+  display: flex;
+  gap: 3rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+  padding-bottom: 4rem;
+}
+
+/* Sidebar Styling */
+.sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.75rem;
+  position: sticky;
+  top: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01);
+}
+
+.sidebarSection {
+  margin-bottom: 2rem;
+}
+
+.sidebarSection:last-child {
+  margin-bottom: 0;
+}
+
+.sectionTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 0.875rem;
+}
+
+.searchWrapper {
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.625rem 0.875rem 0.625rem 2.25rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  background-color: var(--bg-color);
+  transition: all 0.2s ease;
+}
+
+.searchInput:focus {
+  border-color: var(--text-primary);
+  background-color: var(--white);
+}
+
+.categoryList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+/* Custom scrollbar for categories list */
+.categoryList::-webkit-scrollbar {
+  width: 4px;
+}
+.categoryList::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 2px;
+}
+
+.categoryBtn {
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.categoryBtn:hover {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+}
+
+.categoryBtnActive {
+  background-color: var(--text-primary);
+  color: var(--white) !important;
+}
+
+.durationFilters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.durationBtn {
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.durationBtn:hover {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+}
+
+.durationBtnActive {
+  background-color: var(--text-primary);
+  color: var(--white) !important;
+}
+
+.clearBtn {
+  width: 100%;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  margin-top: 1.5rem;
+  justify-content: center;
+}
+
+/* Content Area */
+.contentArea {
+  flex: 1;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 2rem;
-  padding-bottom: 4rem;
+}
+
+.mobileFilterToggle {
+  display: none;
+  margin-bottom: 1rem;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 5rem 2rem;
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.emptyState h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.emptyState p {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 992px) {
+  .layoutContainer {
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+  }
+
+  .mobileFilterToggle {
+    display: block;
+  }
+
+  .sidebar {
+    display: none;
+    width: 100%;
+    position: static;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    margin-bottom: 0.5rem;
+  }
+
+  .sidebarOpen {
+    display: block;
+    animation: slideDown 0.3s ease-out forwards;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

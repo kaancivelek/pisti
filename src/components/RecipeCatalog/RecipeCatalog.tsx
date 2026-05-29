@@ -27,9 +27,22 @@ interface RecipeCatalogProps {
   readonly initialRecipes: RecipeSummary[];
 }
 
+const CATEGORIES = [
+  "Zeytinyağlı", "Et Yemekleri", "Tavuk Yemekleri", "Balık & Deniz Ürünleri",
+  "Çorbalar", "Salatalar", "Kahvaltılık", "Tatlılar", "Pastalar & Börekler",
+  "İçecekler", "Vejetaryen", "Vegan", "Aperatifler", "Makarna & Pirinç",
+];
+
 export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
   const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
   const [detailRequestedId, setDetailRequestedId] = useState<string | null>(null);
+
+  // Search & Filter States
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [maxTime, setMaxTime] = useState<number | undefined>(undefined);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   const headerRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
@@ -37,42 +50,56 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
 
   const { ref: loadMoreRef, inView } = useInView();
 
+  // Debounce search input
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(delayDebounce);
+  }, [search]);
+
   const {
     data,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['recipes'],
+    queryKey: ["recipes", debouncedSearch, category, maxTime],
     queryFn: async ({ pageParam = 1 }) => {
-      return await getRecipes(pageParam, 10);
+      return await getRecipes(pageParam, 10, debouncedSearch, category, maxTime);
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       return lastPage.length === 10 ? allPages.length + 1 : undefined;
     },
-    initialData: {
+    initialData: (!debouncedSearch && !category && maxTime === undefined) ? {
       pages: [initialRecipes],
       pageParams: [1]
-    }
+    } : undefined
   });
 
   const recipes = data?.pages.flat() || [];
 
   const selectedId = selectedRecipe?._id as string | undefined;
- const needsDetail = selectedId === detailRequestedId && !selectedRecipe?.ingredientGroups?.length;
+  const needsDetail = selectedId === detailRequestedId && !selectedRecipe?.ingredientGroups?.length;
 
-const handleSelectRecipe = (recipe: any) => {
-  setSelectedRecipe(recipe);
-  setDetailRequestedId(recipe._id);  // ← Bu recipe'nin detayını çek
-};
+  const handleSelectRecipe = (recipe: any) => {
+    setSelectedRecipe(recipe);
+    setDetailRequestedId(recipe._id);
+  };
 
- const { data: recipeDetail, isFetching: isFetchingDetail } = useQuery({
-  queryKey: ["recipe-detail", selectedId],
-  queryFn: () => getRecipeById(selectedId as string),
-  enabled: Boolean(needsDetail),
-  staleTime: 5 * 60 * 1000, // Redis TTL (300s) ile eşleştir
-});
+  const handleClearFilters = () => {
+    setSearch("");
+    setCategory("");
+    setMaxTime(undefined);
+  };
+
+  const { data: recipeDetail, isFetching: isFetchingDetail } = useQuery({
+    queryKey: ["recipe-detail", selectedId],
+    queryFn: () => getRecipeById(selectedId as string),
+    enabled: Boolean(needsDetail),
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
     if (!recipeDetail || !selectedId) {
@@ -118,41 +145,174 @@ const handleSelectRecipe = (recipe: any) => {
         <p>Özenle seçilmiş, sade ve reklamsız. Sadece malzemeler ve adımlar.</p>
       </header>
 
-      <div className={styles.grid}>
-        {recipes.map((recipe, index) => (
-          <RecipeCard 
-            key={`${recipe._id}-${index}`} 
-            recipe={recipe} 
-            ref={el => { cardsRef.current[index] = el; }}
-            onClick={() => handleSelectRecipe(recipe)}
+      {/* Mobile Filter Toggle */}
+      <div className={styles.mobileFilterToggle}>
+        <button 
+          className="btn btn-outline"
+          onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+          style={{ width: "100%", justifyContent: "center" }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "0.5rem" }}>
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+          </svg>
+          {isFilterPanelOpen ? "Filtreleri Kapat" : "Arama ve Filtreler"}
+        </button>
+      </div>
 
-          />
-        ))}
-      </div>  
+      <div className={styles.layoutContainer}>
+        {/* Sidebar Filters */}
+        <aside className={`${styles.sidebar} ${isFilterPanelOpen ? styles.sidebarOpen : ""}`}>
+          <div className={styles.sidebarSection}>
+            <h3 className={styles.sectionTitle}>Tariflerde Ara</h3>
+            <div className={styles.searchWrapper}>
+              <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                className={styles.searchInput}
+                placeholder="Örn: Mozaik pasta..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
 
-      <div 
-        ref={loadMoreRef} 
-        style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem', paddingBottom: '3rem', minHeight: '50px' }}
-      >
-        {isFetchingNextPage && (
-          <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>
-            Daha fazla yükleniyor...
-          </span>
-        )}
-        {!hasNextPage && recipes.length > 0 && (
-          <span style={{ color: 'var(--foreground)', opacity: 0.7 }}>
-            Tüm tarifleri gördünüz.
-          </span>
-        )}
+          <div className={styles.sidebarSection}>
+            <h3 className={styles.sectionTitle}>Kategoriler</h3>
+            <ul className={styles.categoryList}>
+              <li>
+                <button
+                  className={`${styles.categoryBtn} ${category === "" ? styles.categoryBtnActive : ""}`}
+                  onClick={() => {
+                    setCategory("");
+                    setIsFilterPanelOpen(false);
+                  }}
+                >
+                  Tüm Tarifler
+                </button>
+              </li>
+              {CATEGORIES.map((cat) => (
+                <li key={cat}>
+                  <button
+                    className={`${styles.categoryBtn} ${category === cat ? styles.categoryBtnActive : ""}`}
+                    onClick={() => {
+                      setCategory(cat);
+                      setIsFilterPanelOpen(false);
+                    }}
+                  >
+                    {cat}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className={styles.sidebarSection}>
+            <h3 className={styles.sectionTitle}>Toplam Süre</h3>
+            <div className={styles.durationFilters}>
+              <button
+                className={`${styles.durationBtn} ${maxTime === undefined ? styles.durationBtnActive : ""}`}
+                onClick={() => {
+                  setMaxTime(undefined);
+                  setIsFilterPanelOpen(false);
+                }}
+              >
+                Tümü
+              </button>
+              <button
+                className={`${styles.durationBtn} ${maxTime === 15 ? styles.durationBtnActive : ""}`}
+                onClick={() => {
+                  setMaxTime(15);
+                  setIsFilterPanelOpen(false);
+                }}
+              >
+                Pratik (&lt; 15 dk)
+              </button>
+              <button
+                className={`${styles.durationBtn} ${maxTime === 30 ? styles.durationBtnActive : ""}`}
+                onClick={() => {
+                  setMaxTime(30);
+                  setIsFilterPanelOpen(false);
+                }}
+              >
+                Hızlı (&lt; 30 dk)
+              </button>
+              <button
+                className={`${styles.durationBtn} ${maxTime === 60 ? styles.durationBtnActive : ""}`}
+                onClick={() => {
+                  setMaxTime(60);
+                  setIsFilterPanelOpen(false);
+                }}
+              >
+                Orta (&lt; 1 saat)
+              </button>
+            </div>
+          </div>
+
+          {(search || category || maxTime !== undefined) && (
+            <button 
+              className={`btn btn-outline ${styles.clearBtn}`}
+              onClick={handleClearFilters}
+            >
+              Filtreleri Temizle
+            </button>
+          )}
+        </aside>
+
+        {/* Content Grid */}
+        <div className={styles.contentArea}>
+          {recipes.length === 0 ? (
+            <div className={styles.emptyState}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: "1rem", opacity: 0.5 }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="8" y1="12" x2="16" y2="12" />
+              </svg>
+              <h3>Aradığınız kriterlere uygun tarif bulunamadı</h3>
+              <p>Farklı bir kelime deneyebilir veya filtreleri temizleyebilirsiniz.</p>
+              <button className="btn btn-outline" style={{ marginTop: "1rem" }} onClick={handleClearFilters}>
+                Filtreleri Temizle
+              </button>
+            </div>
+          ) : (
+            <div className={styles.grid}>
+              {recipes.map((recipe, index) => (
+                <RecipeCard 
+                  key={`${recipe._id}-${index}`} 
+                  recipe={recipe} 
+                  ref={el => { cardsRef.current[index] = el; }}
+                  onClick={() => handleSelectRecipe(recipe)}
+                />
+              ))}
+            </div>
+          )}
+
+          <div 
+            ref={loadMoreRef} 
+            style={{ display: "flex", justifyContent: "center", marginTop: "3rem", paddingBottom: "3rem", minHeight: "50px" }}
+          >
+            {isFetchingNextPage && (
+              <span style={{ fontWeight: 600, color: "var(--foreground)" }}>
+                Daha fazla yükleniyor...
+              </span>
+            )}
+            {!hasNextPage && recipes.length > 0 && (
+              <span style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                Tüm tarifleri gördünüz.
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       <RecipePanel 
         recipe={selectedRecipe} 
         isLoading={Boolean(selectedRecipe && needsDetail && isFetchingDetail)}
         onClose={() => {
-  setSelectedRecipe(null);
-  setDetailRequestedId(null);  // ← Flag de sıfırla
-}}
+          setSelectedRecipe(null);
+          setDetailRequestedId(null);
+        }}
         ref={panelRef} 
       />
     </>
