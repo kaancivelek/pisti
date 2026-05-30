@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Recipe from '@/lib/models/Recipe';
 import { generateRecipePdf } from '@/lib/pdf/generateRecipePdf';
+import type { RecipePdfData } from '@/lib/pdf/types';
 
 export const runtime = 'nodejs';
 
@@ -28,7 +29,7 @@ export async function GET(
       );
     }
 
-    const pdfBuffer = await generateRecipePdf(recipe as any);
+    const pdfBuffer = await generateRecipePdf(recipe as unknown as RecipePdfData);
 
     const safeName = (recipe.title || 'tarif')
       .toString()
@@ -48,10 +49,10 @@ export async function GET(
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[PDF_GEN_ERROR]:', error);
     return NextResponse.json(
-      { error: 'PDF oluşturulamadı.', details: error.message },
+      { error: 'PDF oluşturulamadı.', details: error instanceof Error ? error.message : 'Bilinmeyen hata' },
       { status: 500 }
     );
   }

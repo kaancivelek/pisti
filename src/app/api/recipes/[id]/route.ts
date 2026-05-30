@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     const { id } = await params;
     await dbConnect();
 
-    const isAdmin = (session.user as any).role === 'admin';
+    const isAdmin = session.user.role === 'admin';
     const query = isAdmin ? { _id: id } : { _id: id, authorId: session.user.id };
 
     const recipe = await Recipe.findOne(query).lean();
@@ -26,9 +26,10 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
     }
 
-    const serialized = { ...(recipe as any), _id: (recipe as any)._id.toString() };
+    const recipeObj = recipe as Record<string, unknown> & { _id: { toString(): string } };
+    const serialized = { ...recipeObj, _id: recipeObj._id.toString() };
     return NextResponse.json(serialized);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -45,7 +46,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     const body = await req.json();
     await dbConnect();
 
-    const isAdmin = (session.user as any).role === 'admin';
+    const isAdmin = session.user.role === 'admin';
     const query = isAdmin ? { _id: id } : { _id: id, authorId: session.user.id };
 
     const recipe = await Recipe.findOneAndUpdate(
@@ -58,7 +59,8 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: 'Recipe not found or unauthorized' }, { status: 404 });
     }
 
-    const serialized = { ...(recipe as any), _id: (recipe as any)._id.toString() };
+    const recipeObj = recipe as Record<string, unknown> & { _id: { toString(): string } };
+    const serialized = { ...recipeObj, _id: recipeObj._id.toString() };
     return NextResponse.json(serialized);
   } catch (error) {
     console.error('[API] PUT error:', error);
@@ -77,7 +79,7 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     const { id } = await params;
     await dbConnect();
 
-    const isAdmin = (session.user as any).role === 'admin';
+    const isAdmin = session.user.role === 'admin';
     const query = isAdmin ? { _id: id } : { _id: id, authorId: session.user.id };
 
     const recipe = await Recipe.findOneAndDelete(query);

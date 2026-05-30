@@ -7,7 +7,7 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth;
-  const role = (session?.user as any)?.role;
+  const role = session?.user?.role;
 
   // /admin rotaları sadece "admin" rolüne açık
   if (pathname.startsWith('/admin')) {

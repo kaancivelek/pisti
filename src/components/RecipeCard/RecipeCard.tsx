@@ -1,10 +1,23 @@
 import { forwardRef } from "react";
 import gsap from "gsap";
 import { Clock, ArrowRight } from "lucide-react";
+import Image from "next/image";
 import styles from "./RecipeCard.module.css";
 
+interface RecipeCardData {
+  _id?: string;
+  title?: string;
+  description?: string;
+  shortTitle?: string;
+  categoryName?: string;
+  category?: string;
+  imageUrl?: string;
+  prepTime?: number;
+  cookTime?: number;
+}
+
 interface RecipeCardProps {
-  recipe: any;
+  recipe: RecipeCardData;
   onClick: () => void;
 }
 
@@ -27,11 +40,13 @@ const RecipeCard = forwardRef<HTMLDivElement, RecipeCardProps>(({ recipe, onClic
     >
       <div className={styles.imageContainer}>
         <div className={styles.categoryBadge}>{recipe.categoryName || recipe.category}</div>
-        <img 
+        <Image 
           src={recipe.imageUrl || "https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=2071&auto=format&fit=crop"} 
-          alt={recipe.title} 
+          alt={recipe.title || "Tarif"} 
           className={styles.image}
           referrerPolicy="no-referrer"
+          width={400}
+          height={300}
         />
       </div>
       <div className={styles.content}>

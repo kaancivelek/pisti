@@ -7,7 +7,7 @@ import Recipe from "@/lib/models/Recipe";
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user || (session.user as any).role !== "admin") {
+    if (!session?.user || session.user.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    const query: any = {};
+    const query: Record<string, unknown> = {};
 
     if (search) {
       query.$or = [
@@ -45,10 +45,10 @@ export async function GET(req: NextRequest) {
       Recipe.countDocuments(query),
     ]);
 
-    const serialized = recipes.map((r: any) => ({
+    const serialized = recipes.map((r) => ({
       ...r,
-      _id: r._id.toString(),
-      authorId: r.authorId?.toString(),
+      _id: (r._id as { toString(): string }).toString(),
+      authorId: (r.authorId as { toString(): string } | undefined)?.toString(),
     }));
 
     return NextResponse.json({

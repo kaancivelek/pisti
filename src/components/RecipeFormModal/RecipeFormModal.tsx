@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import styles from "./RecipeFormModal.module.css";
 import { IngredientGroup, InstructionGroup } from "@/lib/models/Recipe";
 
@@ -92,13 +93,15 @@ export default function RecipeFormModal({ isOpen, onClose, onSuccess, editRecipe
           ? data.instructionGroups
           : [{ instructions: [{ description: "", order: 1 }] }],
       });
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Tarif yüklenemedi.");
     } finally {
       setFetchLoading(false);
     }
   }, [editRecipeId]);
 
+  // Reset form state when the modal opens
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: reset modal state on open transition
   useEffect(() => {
     if (isOpen) {
       setActiveStep(0);
@@ -117,7 +120,7 @@ export default function RecipeFormModal({ isOpen, onClose, onSuccess, editRecipe
   };
 
   // Generic field change
-  const handleChange = (field: keyof RecipeFormData, value: any) => {
+  const handleChange = (field: keyof RecipeFormData, value: RecipeFormData[keyof RecipeFormData]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -134,7 +137,10 @@ export default function RecipeFormModal({ isOpen, onClose, onSuccess, editRecipe
   };
   const updateIngredient = (groupIdx: number, itemIdx: number, field: string, value: string) => {
     const groups = [...form.ingredientGroups];
-    (groups[groupIdx].items[itemIdx] as any)[field] = value;
+    const items = [...groups[groupIdx].items];
+    const item = { ...items[itemIdx], [field]: value };
+    items[itemIdx] = item;
+    groups[groupIdx] = { ...groups[groupIdx], items };
     handleChange("ingredientGroups", groups);
   };
 
@@ -186,8 +192,8 @@ export default function RecipeFormModal({ isOpen, onClose, onSuccess, editRecipe
 
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Bir hata oluştu.");
     } finally {
       setLoading(false);
     }
@@ -290,7 +296,7 @@ export default function RecipeFormModal({ isOpen, onClose, onSuccess, editRecipe
                   </div>
                   {form.imageUrl && (
                     <div className={styles.imagePreview}>
-                      <img src={form.imageUrl} alt="Önizleme" onError={(e) => (e.currentTarget.style.display = "none")} />
+                      <Image src={form.imageUrl} alt="Önizleme" width={400} height={300} onError={(e) => (e.currentTarget.style.display = "none")} />
                     </div>
                   )}
                   <div className={styles.formRow}>
@@ -459,7 +465,7 @@ export default function RecipeFormModal({ isOpen, onClose, onSuccess, editRecipe
                 <div className={styles.formStep}>
                   <div className={styles.preview}>
                     {form.imageUrl && (
-                      <img className={styles.previewImage} src={form.imageUrl} alt={form.title} />
+                      <Image className={styles.previewImage} src={form.imageUrl} alt={form.title} width={600} height={400} />
                     )}
                     <div className={styles.previewBadge}>{form.categoryName || "Kategori yok"}</div>
                     <h3 className={styles.previewTitle}>{form.title || "Başlık girilmedi"}</h3>

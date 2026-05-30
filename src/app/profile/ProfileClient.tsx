@@ -1,21 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import Navbar from "@/components/Navbar/Navbar";
 import RecipeFormModal from "@/components/RecipeFormModal/RecipeFormModal";
 import UserRecipeList from "@/components/UserRecipeList/UserRecipeList";
 import ProfileSettingsForm from "@/components/ProfileSettingsForm/ProfileSettingsForm";
 import styles from "./Profile.module.css";
+import type { User as AuthUser } from "next-auth";
 
-export default function ProfileClient() {
-  const { data: session } = useSession();
+interface ProfileClientProps {
+  currentUser: AuthUser;
+}
+
+export default function ProfileClient({ currentUser }: ProfileClientProps) {
   const [activeTab, setActiveTab] = useState<"recipes" | "settings">("recipes");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editRecipeId, setEditRecipeId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-
-  if (!session?.user) return null;
 
   const handleOpenCreate = () => {
     setEditRecipeId(null);
@@ -38,15 +40,15 @@ export default function ProfileClient() {
 
   return (
     <>
-      <Navbar />
+      <Navbar user={currentUser} />
       <div className={styles.profileWrapper}>
         <header className={styles.profileHeader}>
           <div className={styles.avatarLarge}>
-            {session.user.name?.charAt(0).toUpperCase()}
+            {currentUser.name?.charAt(0).toUpperCase()}
           </div>
           <div className={styles.userInfo}>
-            <h1 className={styles.userName}>{session.user.name}</h1>
-            <p className={styles.userEmail}>{session.user.email}</p>
+            <h1 className={styles.userName}>{currentUser.name}</h1>
+            <p className={styles.userEmail}>{currentUser.email}</p>
           </div>
           <button
             className={`btn btn-outline ${styles.logoutBtn}`}
@@ -93,7 +95,7 @@ export default function ProfileClient() {
 
           {activeTab === "settings" && (
             <div className={styles.settingsSection}>
-              <ProfileSettingsForm />
+              <ProfileSettingsForm currentUser={currentUser} />
             </div>
           )}
         </div>

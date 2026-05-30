@@ -1,19 +1,25 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import type { User as AuthUser } from "next-auth";
 import styles from "./ProfileSettingsForm.module.css";
 
 type Tab = "info" | "password" | "danger";
 
-export default function ProfileSettingsForm() {
-  const { data: session, update: updateSession } = useSession();
+interface ProfileSettingsFormProps {
+  currentUser: AuthUser;
+}
+
+export default function ProfileSettingsForm({ currentUser }: ProfileSettingsFormProps) {
+  const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<Tab>("info");
 
   // Info form
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(currentUser.name || "");
+  const [email, setEmail] = useState(currentUser.email || "");
   const [infoLoading, setInfoLoading] = useState(false);
   const [infoSuccess, setInfoSuccess] = useState(false);
   const [infoError, setInfoError] = useState<string | null>(null);
@@ -33,13 +39,14 @@ export default function ProfileSettingsForm() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // Init form values from session
+  // Sync form values when session loads/changes
+  const sessionName = currentUser.name || "";
+  const sessionEmail = currentUser.email || "";
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: sync session data into form fields
   useEffect(() => {
-    if (session?.user) {
-      setName(session.user.name || "");
-      setEmail(session.user.email || "");
-    }
-  }, [session]);
+    setName(sessionName);
+    setEmail(sessionEmail);
+  }, [sessionName, sessionEmail]);
 
   const clearSuccess = (setter: (v: boolean) => void) => {
     setTimeout(() => setter(false), 3000);
@@ -62,12 +69,12 @@ export default function ProfileSettingsForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Güncelleme başarısız.");
 
-      // NextAuth session'ını güncelle (client-side)
-      await updateSession({ name: data.name, email: data.email });
+      // Refresh server state to update session
+      router.refresh();
       setInfoSuccess(true);
       clearSuccess(setInfoSuccess);
-    } catch (err: any) {
-      setInfoError(err.message);
+    } catch (err: unknown) {
+      setInfoError(err instanceof Error ? err.message : "Güncelleme başarısız.");
     } finally {
       setInfoLoading(false);
     }
@@ -104,8 +111,8 @@ export default function ProfileSettingsForm() {
       setNewPassword("");
       setConfirmPassword("");
       clearSuccess(setPwSuccess);
-    } catch (err: any) {
-      setPwError(err.message);
+    } catch (err: unknown) {
+      setPwError(err instanceof Error ? err.message : "Şifre güncellenemedi.");
     } finally {
       setPwLoading(false);
     }
@@ -113,7 +120,7 @@ export default function ProfileSettingsForm() {
 
   // ─── Delete Account ───
   const handleDelete = async () => {
-    if (deleteConfirm !== session?.user?.email) {
+    if (deleteConfirm !== currentUser.email) {
       setDeleteError("E-posta adresi eşleşmiyor.");
       return;
     }
@@ -127,8 +134,8 @@ export default function ProfileSettingsForm() {
         throw new Error(data.error || "Hesap silinemedi.");
       }
       await signOut({ callbackUrl: "/" });
-    } catch (err: any) {
-      setDeleteError(err.message);
+    } catch (err: unknown) {
+      setDeleteError(err instanceof Error ? err.message : "Hesap silinemedi.");
       setDeleteLoading(false);
     }
   };
@@ -302,12 +309,12 @@ export default function ProfileSettingsForm() {
 
           <div className={styles.dangerZone}>
             <p className={styles.dangerHint}>
-              Onaylamak için e-posta adresinizi yazın: <strong>{session?.user?.email}</strong>
+              Onaylamak için e-posta adresinizi yazın: <strong>{currentUser.email}</strong>
             </p>
             <input
               className={`${styles.input} ${styles.dangerInput}`}
               type="email"
-              placeholder={session?.user?.email || ""}
+              placeholder={currentUser.email || ""}
               value={deleteConfirm}
               onChange={(e) => setDeleteConfirm(e.target.value)}
             />
@@ -319,7 +326,7 @@ export default function ProfileSettingsForm() {
             <button
               className={`btn ${styles.deleteAccountBtn}`}
               onClick={handleDelete}
-              disabled={deleteLoading || deleteConfirm !== session?.user?.email}
+              disabled={deleteLoading || deleteConfirm !== currentUser.email}
             >
               {deleteLoading ? <><span className={styles.btnSpinner} />Siliniyor...</> : "Hesabımı Kalıcı Olarak Sil"}
             </button>

@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { User, ShieldCheck } from "lucide-react";
+import { User as UserIcon, ShieldCheck } from "lucide-react";
 import { forwardRef } from "react";
-import { useSession } from "next-auth/react";
+import type { User } from "next-auth";
 import styles from "./Navbar.module.css";
 
-const Navbar = forwardRef<HTMLDivElement>((props, ref) => {
-  const { data: session } = useSession();
-  const role = (session?.user as any)?.role;
+interface NavbarProps {
+  user?: User | null;
+}
+
+const Navbar = forwardRef<HTMLDivElement, NavbarProps>(({ user }, ref) => {
+  const role = user?.role;
 
   return (
     <nav className={styles.navbar} ref={ref}>
@@ -17,29 +20,29 @@ const Navbar = forwardRef<HTMLDivElement>((props, ref) => {
       </Link>
 
       <div className={styles.actions}>
-        {!session && (
+        {!user && (
           <Link href="/login" className={`btn btn-outline ${styles.actionBtn}`}>
-            <User size={16} />
+            <UserIcon size={16} />
             Giriş Yap
           </Link>
         )}
 
-        {session && role === "admin" && (
+        {user && role === "admin" && (
           <Link href="/admin" className={`btn btn-outline ${styles.actionBtn}`}>
             <ShieldCheck size={16} />
             Admin
           </Link>
         )}
 
-        {session && role === "user" && (
+        {user && role === "user" && (
           <Link
             href="/profile"
             className={`btn btn-outline ${styles.actionBtn}`}
           >
             <span className={styles.avatar}>
-              {session.user?.name?.charAt(0).toUpperCase() ?? "U"}
+              {user.name?.charAt(0).toUpperCase() ?? "U"}
             </span>
-            {session.user?.name?.split(" ")[0]}
+            {user.name?.split(" ")[0]}
           </Link>
         )}
       </div>

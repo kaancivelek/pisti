@@ -18,7 +18,8 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ ...(user as any), _id: (user as any)._id.toString() });
+    const userObj = user as Record<string, unknown> & { _id: { toString(): string } };
+    return NextResponse.json({ ...userObj, _id: userObj._id.toString() });
   } catch (error) {
     console.error('[API] GET /api/profile error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -45,7 +46,7 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    const updateFields: Record<string, any> = {};
+    const updateFields: Record<string, string> = {};
     if (name) updateFields.name = name.trim();
     if (email) updateFields.email = email.trim().toLowerCase();
 
@@ -79,7 +80,8 @@ export async function PATCH(req: NextRequest) {
       { new: true }
     ).select('-password').lean();
 
-    return NextResponse.json({ ...(updated as any), _id: (updated as any)._id.toString() });
+    const updatedObj = updated as Record<string, unknown> & { _id: { toString(): string } };
+    return NextResponse.json({ ...updatedObj, _id: updatedObj._id.toString() });
   } catch (error) {
     console.error('[API] PATCH /api/profile error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

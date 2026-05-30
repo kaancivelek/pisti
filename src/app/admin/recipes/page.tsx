@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default async function AdminRecipesPage() {
   const session = await auth();
   
-  if (!session?.user || (session.user as any).role !== "admin") {
+  if (!session?.user || session.user.role !== "admin") {
     redirect("/login");
   }
 

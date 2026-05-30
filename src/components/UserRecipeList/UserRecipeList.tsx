@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import styles from "./UserRecipeList.module.css";
 
 interface RecipeSummary {
@@ -37,13 +38,14 @@ export default function UserRecipeList({ onEdit, refreshKey }: UserRecipeListPro
       if (!res.ok) throw new Error("Tarifler yüklenemedi.");
       const data = await res.json();
       setRecipes(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Tarifler yüklenemedi.");
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: fetch data on mount and when refreshKey changes
   useEffect(() => {
     fetchRecipes();
   }, [fetchRecipes, refreshKey]);
@@ -55,8 +57,8 @@ export default function UserRecipeList({ onEdit, refreshKey }: UserRecipeListPro
       const res = await fetch(`/api/recipes/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Silinemedi.");
       setRecipes((prev) => prev.filter((r) => r._id !== id));
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Bir hata oluştu.");
     } finally {
       setDeletingId(null);
     }
@@ -108,7 +110,7 @@ export default function UserRecipeList({ onEdit, refreshKey }: UserRecipeListPro
         <div key={recipe._id} className={styles.card}>
           {recipe.imageUrl && (
             <div className={styles.cardImage}>
-              <img src={recipe.imageUrl} alt={recipe.title} />
+              <Image src={recipe.imageUrl} alt={recipe.title} width={120} height={80} />
             </div>
           )}
           <div className={styles.cardContent}>

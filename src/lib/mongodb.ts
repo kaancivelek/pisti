@@ -1,4 +1,9 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
+
+interface MongooseCache {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
 
 const MONGODB_URI = process.env.MONGODB_URI!;
 
@@ -11,10 +16,14 @@ if (!MONGODB_URI) {
  * in development. This prevents connections growing exponentially
  * during API Route usage.
  */
-let cached = (global as any).mongoose;
+const globalWithMongoose = globalThis as typeof globalThis & {
+  mongoose?: MongooseCache;
+};
 
-if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null };
+const cached: MongooseCache = globalWithMongoose.mongoose ?? { conn: null, promise: null };
+
+if (!globalWithMongoose.mongoose) {
+  globalWithMongoose.mongoose = cached;
 }
 
 async function dbConnect() {

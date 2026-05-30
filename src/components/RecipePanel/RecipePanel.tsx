@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import gsap from "gsap";
 import { X, Utensils, FileDown } from "lucide-react";
+import Image from "next/image";
 import styles from "./RecipePanel.module.css";
 
 interface RecipePanelProps {
@@ -133,11 +134,13 @@ const RecipePanel = forwardRef<HTMLDivElement, RecipePanelProps>(({ recipe, isLo
               <button onClick={onClose} className={styles.closeBtn}>
                 <X size={20} />
               </button>
-              <img 
+              <Image 
                 src={recipe.imageUrl || "https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=2071&auto=format&fit=crop"} 
-                alt={recipe.title} 
+                alt={recipe.title || "Tarif"} 
                 className={styles.image}
                 referrerPolicy="no-referrer"
+                width={600}
+                height={400}
               />
             </div>
             

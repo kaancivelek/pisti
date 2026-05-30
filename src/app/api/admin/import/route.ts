@@ -10,7 +10,7 @@ import csvParser from "csv-parser";
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user || (session.user as any).role !== "admin") {
+    if (!session?.user || session.user.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     // Load existing slugs to prevent duplicates in memory
     const existingRecipes = await Recipe.find({}).select("slug").lean();
-    const usedSlugs = new Set(existingRecipes.map((r: any) => r.slug));
+    const usedSlugs = new Set(existingRecipes.map((r: { slug?: string }) => r.slug));
 
     const csvPath = path.resolve("all_recipes_cleaned.csv");
     if (!fs.existsSync(csvPath)) {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     const stream = fs.createReadStream(csvPath);
     const parser = stream.pipe(csvParser());
 
-    let batch: any[] = [];
+    let batch: Record<string, unknown>[] = [];
     let count = 0;
     const BATCH_SIZE = 1000;
 
@@ -69,45 +69,45 @@ export async function POST(req: NextRequest) {
           usedSlugs.add(slug);
 
           // Parse ingredient groups
-          let ingredientGroups: any[] = [];
+          let ingredientGroups: { name?: string; items: { amount?: string; unit?: string; name: string; note?: string }[] }[] = [];
           if (row.IngredientGroups) {
             try {
               const parsed = JSON.parse(row.IngredientGroups);
               if (Array.isArray(parsed)) {
-                ingredientGroups = parsed.map((g: any) => ({
+                ingredientGroups = parsed.map((g: { Name?: string; Items?: { Quantity?: string; Unit?: { Name?: string }; Ingredient?: { Name?: string }; name?: string; Note?: string }[] }) => ({
                   name: g.Name || undefined,
                   items: (g.Items || [])
-                    .map((item: any) => ({
+                    .map((item: { Quantity?: string; Unit?: { Name?: string }; Ingredient?: { Name?: string }; name?: string; Note?: string }) => ({
                       amount: item.Quantity || undefined,
                       unit: item.Unit?.Name || undefined,
                       name: item.Ingredient?.Name || item.name || "",
                       note: item.Note || undefined,
                     }))
-                    .filter((item: any) => item.name),
+                    .filter((item: { name: string }) => item.name),
                 }));
               }
-            } catch (e) {
+            } catch {
               // Ignore JSON parse errors for a single row
             }
           }
 
           // Parse instruction groups
-          let instructionGroups: any[] = [];
+          let instructionGroups: { name?: string; instructions: { description: string; order: number }[] }[] = [];
           if (row.InstructionGroups) {
             try {
               const parsed = JSON.parse(row.InstructionGroups);
               if (Array.isArray(parsed)) {
-                instructionGroups = parsed.map((g: any) => ({
+                instructionGroups = parsed.map((g: { Name?: string; Instructions?: { Description?: string; description?: string; Order?: number; order?: number }[] }) => ({
                   name: g.Name || undefined,
                   instructions: (g.Instructions || [])
-                    .map((ins: any, index: number) => ({
+                    .map((ins: { Description?: string; description?: string; Order?: number; order?: number }, index: number) => ({
                       description: ins.Description || ins.description || "",
                       order: ins.Order || ins.order || index + 1,
                     }))
-                    .filter((ins: any) => ins.description),
+                    .filter((ins: { description: string }) => ins.description),
                 }));
               }
-            } catch (e) {
+            } catch {
               // Ignore JSON parse errors
             }
           }
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
           if (row.Details) {
             try {
               details = JSON.parse(row.Details);
-            } catch (e) {
+            } catch {
               // Ignore
             }
           }
@@ -205,10 +205,10 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, count: result.count });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[API] POST /api/admin/import error:", error);
     return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
+      { error: error instanceof Error ? error.message : "Internal Server Error" },
       { status: 500 }
     );
   }

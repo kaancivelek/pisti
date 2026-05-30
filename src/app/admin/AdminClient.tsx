@@ -1,18 +1,19 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import Navbar from "@/components/Navbar/Navbar";
+import type { User } from "next-auth";
 import styles from "./Admin.module.css";
 import Link from "next/link";
 
-export default function AdminClient() {
-  const { data: session } = useSession();
+interface AdminClientProps {
+  user: User;
+}
 
-  if (!session?.user || (session.user as any).role !== "admin") return null;
-
+export default function AdminClient({ user }: AdminClientProps) {
   return (
     <>
-      <Navbar />
+      <Navbar user={user} />
       <div className={styles.adminWrapper}>
         <header className={styles.header}>
           <div>

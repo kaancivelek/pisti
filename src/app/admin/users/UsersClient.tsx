@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, Search, Trash2, Shield, User as UserIcon } from "lucide-react";
 import styles from "./Users.module.css";
-import { useSession } from "next-auth/react";
+import type { User as AuthUser } from "next-auth";
 
 interface User {
   _id: string;
@@ -14,8 +14,11 @@ interface User {
   createdAt: string;
 }
 
-export default function UsersClient() {
-  const { data: session } = useSession();
+interface UsersClientProps {
+  currentUser: AuthUser;
+}
+
+export default function UsersClient({ currentUser }: UsersClientProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,8 +39,8 @@ export default function UsersClient() {
       }
       const data = await res.json();
       setUsers(data);
-    } catch (err: any) {
-      setError(err.message || "Bilinmeyen bir hata oluştu.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu.");
     } finally {
       setLoading(false);
     }
@@ -54,7 +57,7 @@ export default function UsersClient() {
   const handleRoleChange = async (userId: string, currentRole: string) => {
     const targetRole = currentRole === "admin" ? "user" : "admin";
     
-    if (userId === session?.user?.id) {
+    if (userId === currentUser.id) {
       alert("Kendi rolünüzü değiştiremezsiniz!");
       return;
     }
@@ -83,15 +86,15 @@ export default function UsersClient() {
       setUsers((prev) =>
         prev.map((u) => (u._id === userId ? { ...u, role: targetRole } : u))
       );
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Bir hata oluştu.");
     } finally {
       setUpdatingId(null);
     }
   };
 
   const handleDelete = async (userId: string, userName: string) => {
-    if (userId === session?.user?.id) {
+    if (userId === currentUser.id) {
       alert("Kendinizi silemezsiniz!");
       return;
     }
@@ -112,8 +115,8 @@ export default function UsersClient() {
       }
 
       setUsers((prev) => prev.filter((u) => u._id !== userId));
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Bir hata oluştu.");
     } finally {
       setDeletingId(null);
     }
@@ -180,7 +183,7 @@ export default function UsersClient() {
                   <td data-label="Kullanıcı">
                     <div className={styles.userInfo}>
                       <span className={styles.userName}>
-                        {user.name} {user._id === session?.user?.id && " (Siz)"}
+                        {user.name} {user._id === currentUser.id && " (Siz)"}
                       </span>
                       <span className={styles.userEmail}>{user.email}</span>
                     </div>
@@ -208,7 +211,7 @@ export default function UsersClient() {
                       <button
                         className={styles.actionBtn}
                         onClick={() => handleRoleChange(user._id, user.role)}
-                        disabled={updatingId === user._id || user._id === session?.user?.id}
+                        disabled={updatingId === user._id || user._id === currentUser.id}
                         title={user.role === "admin" ? "Kullanıcı Rolüne Düşür" : "Admin Rolüne Yükselt"}
                       >
                         {updatingId === user._id ? (
@@ -222,7 +225,7 @@ export default function UsersClient() {
                       <button
                         className={`${styles.actionBtn} ${styles.deleteBtn}`}
                         onClick={() => handleDelete(user._id, user.name)}
-                        disabled={deletingId === user._id || user._id === session?.user?.id}
+                        disabled={deletingId === user._id || user._id === currentUser.id}
                         title="Kullanıcıyı Sil"
                       >
                         {deletingId === user._id ? (

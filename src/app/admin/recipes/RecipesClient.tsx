@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Search, Trash2, Edit3, Plus, Database, RefreshCw, AlertCircle } from "lucide-react";
 import styles from "./Recipes.module.css";
 import RecipeFormModal from "@/components/RecipeFormModal/RecipeFormModal";
@@ -34,6 +35,8 @@ export default function RecipesClient() {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [appliedCategory, setAppliedCategory] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +48,6 @@ export default function RecipesClient() {
   // CSV Import States
   const [importStatus, setImportStatus] = useState<"idle" | "importing" | "success" | "error">("idle");
   const [importMessage, setImportMessage] = useState("");
-  const [importCount, setImportCount] = useState(0);
 
   const fetchRecipes = useCallback(async (p: number, s: string, cat: string) => {
     setLoading(true);
@@ -67,25 +69,22 @@ export default function RecipesClient() {
       setTotal(data.total);
       setTotalPages(data.pages);
       setPage(data.page);
-    } catch (err: any) {
-      setError(err.message || "Bilinmeyen bir hata oluştu.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      fetchRecipes(page, search, category);
-    }, 300);
+    fetchRecipes(page, appliedSearch, appliedCategory);
+  }, [page, appliedSearch, appliedCategory, refreshKey, fetchRecipes]);
 
-    return () => clearTimeout(delayDebounce);
-  }, [page, search, category, refreshKey, fetchRecipes]);
-
-  // Reset page when filters change
+  // Reset page when applied filters change
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: reset pagination when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, category]);
+  }, [appliedSearch, appliedCategory]);
 
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`"${title}" tarifini silmek istediğinize emin misiniz?`)) return;
@@ -100,8 +99,8 @@ export default function RecipesClient() {
       }
 
       setRefreshKey((k) => k + 1);
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Bir hata oluştu.");
     }
   };
 
@@ -139,12 +138,11 @@ export default function RecipesClient() {
       }
 
       setImportStatus("success");
-      setImportCount(data.count);
       setImportMessage(`Başarıyla ${data.count} adet tarif içe aktarıldı!`);
       setRefreshKey((k) => k + 1);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setImportStatus("error");
-      setImportMessage(err.message || "İçe aktarım başarısız oldu.");
+      setImportMessage(err instanceof Error ? err.message : "İçe aktarım başarısız oldu.");
     }
   };
 
@@ -171,7 +169,7 @@ export default function RecipesClient() {
       <div className={styles.importBanner}>
         <div className={styles.importInfo}>
           <h4>Toplu Tarif Yükleme (CSV Seeding)</h4>
-          <p>Sunucuda bulunan 67MB boyutundaki <strong>all_recipes_cleaned.csv</strong> dosyasını MongoDB'ye aktarın.</p>
+          <p>Sunucuda bulunan 67MB boyutundaki <strong>all_recipes_cleaned.csv</strong> dosyasını MongoDB&apos;ye aktarın.</p>
         </div>
         <div className={styles.importActions}>
           {importStatus === "importing" ? (
@@ -236,6 +234,15 @@ export default function RecipesClient() {
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
+          <button 
+            className="btn btn-primary"
+            onClick={() => {
+              setAppliedSearch(search);
+              setAppliedCategory(category);
+            }}
+          >
+            Uygula
+          </button>
         </div>
         <div className={styles.recipeCount}>
           Toplam Sonuç: <strong>{total}</strong>
@@ -278,7 +285,7 @@ export default function RecipesClient() {
                     <td data-label="Tarif">
                       <div className={styles.recipeCell}>
                         {recipe.imageUrl ? (
-                          <img src={recipe.imageUrl} alt={recipe.title} className={styles.recipeThumb} />
+                          <Image src={recipe.imageUrl} alt={recipe.title} className={styles.recipeThumb} width={48} height={48} />
                         ) : (
                           <div className={styles.recipeThumb} style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", color: "#888" }}>
                             Görsel Yok

@@ -10,6 +10,7 @@ import styles from "./RecipeCatalog.module.css";
 import { getRecipeById, getRecipes } from "@/app/actions";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
+import type { User as AuthUser } from "next-auth";
 
 interface RecipeSummary {
   _id?: string;
@@ -25,6 +26,7 @@ interface RecipeSummary {
 
 interface RecipeCatalogProps {
   readonly initialRecipes: RecipeSummary[];
+  readonly currentUser?: AuthUser | null;
 }
 
 const CATEGORIES = [
@@ -33,15 +35,19 @@ const CATEGORIES = [
   "İçecekler", "Vejetaryen", "Vegan", "Aperatifler", "Makarna & Pirinç",
 ];
 
-export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
+export default function RecipeCatalog({ initialRecipes, currentUser }: RecipeCatalogProps) {
   const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
   const [detailRequestedId, setDetailRequestedId] = useState<string | null>(null);
 
-  // Search & Filter States
+  // Search & Filter States (Drafts)
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState("");
   const [maxTime, setMaxTime] = useState<number | undefined>(undefined);
+
+  // Applied States (These trigger the actual fetch)
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [appliedCategory, setAppliedCategory] = useState("");
+  const [appliedMaxTime, setAppliedMaxTime] = useState<number | undefined>(undefined);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   const headerRef = useRef<HTMLDivElement>(null);
@@ -50,13 +56,7 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
 
   const { ref: loadMoreRef, inView } = useInView();
 
-  // Debounce search input
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
-    return () => clearTimeout(delayDebounce);
-  }, [search]);
+  // We no longer debounce since we use a manual apply button
 
   const {
     data,
@@ -64,15 +64,15 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["recipes", debouncedSearch, category, maxTime],
+    queryKey: ["recipes", appliedSearch, appliedCategory, appliedMaxTime],
     queryFn: async ({ pageParam = 1 }) => {
-      return await getRecipes(pageParam, 10, debouncedSearch, category, maxTime);
+      return await getRecipes(pageParam, 10, appliedSearch, appliedCategory, appliedMaxTime);
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       return lastPage.length === 10 ? allPages.length + 1 : undefined;
     },
-    initialData: (!debouncedSearch && !category && maxTime === undefined) ? {
+    initialData: (!appliedSearch && !appliedCategory && appliedMaxTime === undefined) ? {
       pages: [initialRecipes],
       pageParams: [1]
     } : undefined
@@ -83,15 +83,18 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
   const selectedId = selectedRecipe?._id as string | undefined;
   const needsDetail = selectedId === detailRequestedId && !selectedRecipe?.ingredientGroups?.length;
 
-  const handleSelectRecipe = (recipe: any) => {
+  const handleSelectRecipe = (recipe: RecipeSummary) => {
     setSelectedRecipe(recipe);
-    setDetailRequestedId(recipe._id);
+    setDetailRequestedId(recipe._id || null);
   };
 
   const handleClearFilters = () => {
     setSearch("");
     setCategory("");
     setMaxTime(undefined);
+    setAppliedSearch("");
+    setAppliedCategory("");
+    setAppliedMaxTime(undefined);
   };
 
   const { data: recipeDetail, isFetching: isFetchingDetail } = useQuery({
@@ -101,12 +104,13 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
     staleTime: 5 * 60 * 1000,
   });
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: merge detail data into selected recipe
   useEffect(() => {
     if (!recipeDetail || !selectedId) {
       return;
     }
 
-    setSelectedRecipe((prev: any) => {
+    setSelectedRecipe((prev) => {
       if (prev?._id !== selectedId) {
         return prev;
       }
@@ -138,7 +142,7 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
 
   return (
     <>
-      <Navbar ref={headerRef} />
+      <Navbar ref={headerRef} user={currentUser} />
 
       <header className={styles.header}>
         <h1 className={styles.title}>Minimalist tarif günlüğü.</h1>
@@ -187,7 +191,6 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
                   className={`${styles.categoryBtn} ${category === "" ? styles.categoryBtnActive : ""}`}
                   onClick={() => {
                     setCategory("");
-                    setIsFilterPanelOpen(false);
                   }}
                 >
                   Tüm Tarifler
@@ -199,7 +202,6 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
                     className={`${styles.categoryBtn} ${category === cat ? styles.categoryBtnActive : ""}`}
                     onClick={() => {
                       setCategory(cat);
-                      setIsFilterPanelOpen(false);
                     }}
                   >
                     {cat}
@@ -216,7 +218,6 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
                 className={`${styles.durationBtn} ${maxTime === undefined ? styles.durationBtnActive : ""}`}
                 onClick={() => {
                   setMaxTime(undefined);
-                  setIsFilterPanelOpen(false);
                 }}
               >
                 Tümü
@@ -225,7 +226,6 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
                 className={`${styles.durationBtn} ${maxTime === 15 ? styles.durationBtnActive : ""}`}
                 onClick={() => {
                   setMaxTime(15);
-                  setIsFilterPanelOpen(false);
                 }}
               >
                 Pratik (&lt; 15 dk)
@@ -234,7 +234,6 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
                 className={`${styles.durationBtn} ${maxTime === 30 ? styles.durationBtnActive : ""}`}
                 onClick={() => {
                   setMaxTime(30);
-                  setIsFilterPanelOpen(false);
                 }}
               >
                 Hızlı (&lt; 30 dk)
@@ -243,7 +242,6 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
                 className={`${styles.durationBtn} ${maxTime === 60 ? styles.durationBtnActive : ""}`}
                 onClick={() => {
                   setMaxTime(60);
-                  setIsFilterPanelOpen(false);
                 }}
               >
                 Orta (&lt; 1 saat)
@@ -251,7 +249,20 @@ export default function RecipeCatalog({ initialRecipes }: RecipeCatalogProps) {
             </div>
           </div>
 
-          {(search || category || maxTime !== undefined) && (
+          <button 
+            className="btn btn-primary"
+            style={{ width: "100%", marginBottom: "1rem" }}
+            onClick={() => {
+              setAppliedSearch(search);
+              setAppliedCategory(category);
+              setAppliedMaxTime(maxTime);
+              setIsFilterPanelOpen(false);
+            }}
+          >
+            Filtreleri Uygula
+          </button>
+
+          {(appliedSearch || appliedCategory || appliedMaxTime !== undefined || search || category || maxTime !== undefined) && (
             <button 
               className={`btn btn-outline ${styles.clearBtn}`}
               onClick={handleClearFilters}

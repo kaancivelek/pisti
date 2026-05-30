@@ -7,7 +7,7 @@ import User from "@/lib/models/User";
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user || (session.user as any).role !== "admin") {
+    if (!session?.user || session.user.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    const query: any = {};
+    const query: Record<string, unknown> = {};
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: "i" } },
@@ -29,9 +29,9 @@ export async function GET(req: NextRequest) {
       .sort({ createdAt: -1 })
       .lean();
 
-    const serialized = users.map((u: any) => ({
+    const serialized = users.map((u) => ({
       ...u,
-      _id: u._id.toString(),
+      _id: (u._id as { toString(): string }).toString(),
     }));
 
     return NextResponse.json(serialized);
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user || (session.user as any).role !== "admin") {
+    if (!session?.user || session.user.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -75,7 +75,8 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Kullanıcı bulunamadı." }, { status: 404 });
     }
 
-    return NextResponse.json({ ...(updated as any), _id: (updated as any)._id.toString() });
+    const updatedObj = updated as Record<string, unknown> & { _id: { toString(): string } };
+    return NextResponse.json({ ...updatedObj, _id: updatedObj._id.toString() });
   } catch (error) {
     console.error("[API] PATCH /api/admin/users error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -86,7 +87,7 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user || (session.user as any).role !== "admin") {
+    if (!session?.user || session.user.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
