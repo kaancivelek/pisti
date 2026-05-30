@@ -110,7 +110,7 @@ export default function RecipeCatalog({ initialRecipes, currentUser }: RecipeCat
       return;
     }
 
-    setSelectedRecipe((prev) => {
+    setSelectedRecipe((prev: any) => {
       if (prev?._id !== selectedId) {
         return prev;
       }
